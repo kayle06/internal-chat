@@ -269,8 +269,15 @@
     </div>
 
     <script>
+        // 从 localStorage 获取保存的用户名
+        const savedUsername = localStorage.getItem('username');
+
+        // 修改 socket 初始化
+        const socket = io({
+            query: savedUsername ? { saved_username: savedUsername } : {}
+        });
+
         // 初始化socket连接和用户名变量
-        const socket = io();
         let currentUsername = '';
 
         // 监听服务器发来的消息事件
@@ -355,6 +362,7 @@
                 showNotification(data.message);
             } else {
                 currentUsername = data.newUsername;
+                localStorage.setItem('username', currentUsername);
             }
         });
 
@@ -366,6 +374,7 @@
         // 监听服务器返回的用户名
         socket.on('username', function (data) {
             currentUsername = data.username;
+            localStorage.setItem('username', currentUsername);
         });
 
         function updateUserList(users) {

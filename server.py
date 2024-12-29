@@ -42,12 +42,23 @@ def index():
 @socketio.on('connect')
 def handle_connect():
     """
-        处理新用户连接
-        为新连接的用户生成随机用户名并保存到users字典中
-        向所有客户端广播更新后的用户列表
+    处理新用户连接
+    如果客户端发送了保存的用户名，则使用该用户名
+    否则生成新的随机用户名
     """
-    users[request.sid] = generate_username()
+    # 获取客户端发送的用户名
+    saved_username = request.args.get('saved_username')
+    
+    if saved_username and saved_username not in users.values():
+        # 如果有保存的用户名且未被使用，则使用该用户名
+        users[request.sid] = saved_username
+    else:
+        # 否则生成新的随机用户名
+        users[request.sid] = generate_username()
+    
     emit('user_list', {'users': list(users.values())}, broadcast=True)
+    # 发送分配的用户名给客户端
+    emit('username', {'username': users[request.sid]})
 
 @socketio.on('disconnect')
 def handle_disconnect():
