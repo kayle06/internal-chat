@@ -276,9 +276,9 @@
 
         // 监听用户列表更新事件
         socket.on('user_list', function (data) {
-            console.log("收到用户列表更新:", data.users);
-            updateUserList(data.users);
-            console.log("当前用户名:", currentUsername);
+            // console.log("收到用户列表更新:", data.users);
+            // updateUserList(data.users);
+            // console.log("当前用户名:", currentUsername);
 
             const userList = document.getElementById('user-list');
             userList.innerHTML = '';
@@ -350,8 +350,10 @@
 
         function showNotification(message) {
             const notification = document.createElement('div');
+            const messagesDiv = document.getElementById('messages');
+            
             notification.style.cssText = `
-                position: fixed;
+                position: absolute;
                 top: -100px;
                 left: 50%;
                 transform: translateX(-50%);
@@ -362,12 +364,19 @@
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
                 opacity: 0;
                 transition: all 0.3s ease-out;
+                z-index: 1000;
             `;
             notification.innerHTML = `
                 <i class="fas fa-exclamation-circle"></i>
                 <span>${message}</span>
             `;
-            document.body.appendChild(notification);
+            
+            // 确保messages div是relative定位
+            if(getComputedStyle(messagesDiv).position === 'static') {
+                messagesDiv.style.position = 'relative';
+            }
+            
+            messagesDiv.appendChild(notification);
             
             // 强制重排以触发动画
             notification.offsetHeight;
@@ -376,8 +385,8 @@
             
             setTimeout(() => {
                 notification.style.opacity = '0';
-                setTimeout(() => notification.remove(), 300);
-            }, 2700);
+                setTimeout(() => notification.remove(), 1500);
+            }, 1500);
         }
 
         // 添加用户名修改响应监听
