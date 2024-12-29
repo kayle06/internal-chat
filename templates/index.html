@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>局域网聊天</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #f5f7fb;
+        }
+
+        #users {
+            width: 240px;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #users h3 {
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            font-size: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eef2f7;
+        }
+
+        #user-list {
+            list-style: none;
+        }
+
+        #user-list li {
+            padding: 10px 12px;
+            margin: 8px 0;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .current-user {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin: 8px 0;
+            background-color: #4299e1;
+            border-radius: 6px;
+            color: white;
+        }
+
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-container {
+            margin: 12px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 80%;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message-info {
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: #666;
+        }
+
+        .received .message-container {
+            align-items: flex-start;
+        }
+
+        .sent .message-container {
+            align-items: flex-end;
+        }
+
+        .received .message-bubble {
+            background-color: #f0f2f5;
+            color: #1a1a1a;
+            border-top-left-radius: 4px;
+            margin-right: auto;
+        }
+
+        .sent .message-bubble {
+            background-color: #0084ff;
+            color: white;
+            border-top-right-radius: 4px;
+            margin-left: auto;
+        }
+
+        .received .message-info {
+            margin-left: 15px;
+        }
+
+        .sent .message-info {
+            margin-right: 15px;
+            text-align: right;
+        }
+
+        #input-area {
+            display: flex;
+            gap: 12px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #eef2f7;
+            border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        #message-input:focus {
+            border-color: #4299e1;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background-color: #4299e1;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #3182ce;
+        }
+
+        #change-username-btn {
+            display: none;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* 添加动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-container {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .edit-icon {
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            color: white;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        .edit-icon:hover {
+            opacity: 1;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+
+<body>
+    <div id="users">
+        <h3>在线用户</h3>
+        <ul id="user-list"></ul>
+    </div>
+    <div id="main">
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="输入消息..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 初始化socket连接和用户名变量
+        const socket = io();
+        let currentUsername = '';
+
+        // 监听服务器发来的消息事件
+        socket.on('message', function (data) {
+            // 每个窗口都会收到消息,所以都需要打印日志
+            console.log("收到消息:", data);
+            console.log("当前用户:", currentUsername);
+            console.log("是否为当前用户发送:", data.username === currentUsername);
+            const messages = document.getElementById('messages');
+            const messageWrapper = document.createElement('div');
+            const isOwnMessage = data.username === currentUsername;
+
+            // 获取当前时间,格式化为小时:分钟
+            const now = new Date();
+            const time = now.toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // 根据是否为自己的消息设置不同的样式类
+            messageWrapper.className = isOwnMessage ? 'sent' : 'received';
+            // 构建消息HTML结构
+            messageWrapper.innerHTML = `
+                <div class="message-container">
+                    <div class="message-info">
+                        ${data.username} · ${time}
+                    </div>
+                    <div class="message-bubble">
+                        ${data.content}
+                    </div>
+                </div>
+            `;
+
+            // 添加消息到聊天区域并滚动到底部
+            messages.appendChild(messageWrapper);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        // 监听用户列表更新事件
+        socket.on('user_list', function (data) {
+            console.log("收到用户列表更新:", data.users);
+            console.log("当前用户名:", currentUsername);
+
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+
+            // 如果currentUsername为空，先获取用户名，然后等待username事件后再更新列表
+            if (!currentUsername) {
+                socket.emit('get_username');
+                // 监听一次性的username事件
+                socket.once('username', function (usernameData) {
+                    currentUsername = usernameData.username;
+                    updateUserList(data.users);
+                });
+            } else {
+                updateUserList(data.users);
+            }
+        });
+
+        function updateUserList(users) {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+
+            // 将用户列表分成两部分：当前用户和其他用户
+            const otherUsers = users.filter(username => username !== currentUsername);
+
+            // 先添加当前用户
+            if (currentUsername && users.includes(currentUsername)) {
+                const currentUserLi = document.createElement('li');
+                currentUserLi.className = 'current-user';
+                currentUserLi.innerHTML = `
+                    <span>${currentUsername}</span>
+                    <i class="fas fa-edit edit-icon" onclick="changeUsername()" title="修改用户名"></i>
+                `;
+                currentUserLi.style.backgroundColor = '#4299e1';
+                currentUserLi.style.color = 'white';
+                userList.appendChild(currentUserLi);
+            }
+
+            // 再添加其他用户
+            otherUsers.forEach(username => {
+                const li = document.createElement('li');
+                li.textContent = username;
+                userList.appendChild(li);
+            });
+        }
+
+        // 发送消息的函数
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            if (input.value.trim()) {
+                socket.emit('message', { content: input.value });
+                input.value = '';
+            }
+        }
+
+        // 处理按下回车键发送消息
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // 修改用户名的函数
+        function changeUsername() {
+            const newUsername = prompt('请输入新的用户名：');
+            if (newUsername) {
+                currentUsername = newUsername;
+                socket.emit('username_change', { new_username: newUsername });
+            }
+        }
+
+        // 连接成功后获取初始用户名
+        socket.on('connect', function () {
+            socket.emit('get_username');
+        });
+
+        // 监听服务器返回的用户名
+        socket.on('username', function (data) {
+            currentUsername = data.username;
+        });
+    </script>
+</body>
+
+</html>
