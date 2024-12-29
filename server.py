@@ -4,6 +4,7 @@ import random
 import string
 import os
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -114,7 +115,7 @@ def upload_file():
     
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        random_prefix = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        random_prefix = datetime.now().strftime("%Y%m%d%H%M%S")
         filename = f"{random_prefix}_{filename}"
         
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
