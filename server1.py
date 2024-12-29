@@ -54,6 +54,23 @@ def handle_get_username():
     """
     emit('username', {'username': users[request.sid]})
 
+@socketio.on('username_change')
+def handle_username_change(data):
+    """
+        处理用户名修改请求
+        检查新用户名是否已存在
+        如果不存在则更新，并广播新的用户列表
+        如果存在则返回错误消息
+    """
+    new_username = data['new_username']
+    if new_username in users.values():
+        emit('username_change_response', {'success': False, 'message': '用户名已存在'})
+        return
+    
+    users[request.sid] = new_username
+    emit('username_change_response', {'success': True, 'message': '用户名修改成功', 'newUsername': new_username})
+    emit('user_list', {'users': list(users.values())}, broadcast=True)
+
 def generate_username():
     """
         生成随机用户名 

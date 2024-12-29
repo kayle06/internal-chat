@@ -277,6 +277,7 @@
         // 监听用户列表更新事件
         socket.on('user_list', function (data) {
             console.log("收到用户列表更新:", data.users);
+            updateUserList(data.users);
             console.log("当前用户名:", currentUsername);
 
             const userList = document.getElementById('user-list');
@@ -343,10 +344,50 @@
         function changeUsername() {
             const newUsername = prompt('请输入新的用户名：');
             if (newUsername) {
-                currentUsername = newUsername;
                 socket.emit('username_change', { new_username: newUsername });
             }
         }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: -100px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 12px 24px;
+                background-color: #4299e1;
+                color: white;
+                border-radius: 6px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                opacity: 0;
+                transition: all 0.3s ease-out;
+            `;
+            notification.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(notification);
+            
+            // 强制重排以触发动画
+            notification.offsetHeight;
+            notification.style.opacity = '1';
+            notification.style.top = '20px';
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 2700);
+        }
+
+        // 添加用户名修改响应监听
+        socket.on('username_change_response', function(data) {
+            if (!data.success) {
+                showNotification(data.message);
+            } else {
+                currentUsername = data.newUsername;
+            }
+        });
 
         // 连接成功后获取初始用户名
         socket.on('connect', function () {
