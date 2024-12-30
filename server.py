@@ -8,7 +8,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-app.config['UPLOAD_FOLDER'] = 'uploads'  # 创建上传文件夹
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
 
 # 确保上传文件夹存在
@@ -125,37 +125,43 @@ def upload_file():
         return {'success': False, 'message': '没有选择文件'}, 400
     
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        random_prefix = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"{random_prefix}_{filename}"
+        # 使用时间戳作为文件名前缀，避免中文文件名问题
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        # 获取原始文件扩展名
+        original_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        # 生成新的文件名
+        filename = f"{timestamp}_{random.randint(1000, 9999)}.{original_ext}"
         
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        # 获取文件类型并进行分类
-        file_ext = filename.rsplit('.', 1)[1].lower()
-        if file_ext in {'png', 'jpg', 'jpeg', 'gif'}:
-            file_type = 'image'
-        elif file_ext in {'zip', 'rar', '7z', 'tar', 'gz'}:
-            file_type = 'archive'
-        elif file_ext in {'mp3', 'wav'}:
-            file_type = 'audio'
-        elif file_ext in {'pdf', 'doc', 'docx', 'txt'}:
-            file_type = 'document'
-        elif file_ext in {'apk', 'exe', 'dmg', 'pkg'}:
-            file_type = 'application'
-        else:
-            file_type = 'file'
-        
-        username = request.form.get('username', '未知用户')
-        
-        socketio.emit('message', {
-            'username': username,
-            'content': filename,
-            'type': file_type,
-            'original_name': file.filename  # 添加原始文件名
-        })
-        
-        return {'success': True, 'filename': filename}, 200
+        try:
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
+            # 获取文件类型
+            if original_ext in {'png', 'jpg', 'jpeg', 'gif'}:
+                file_type = 'image'
+            elif original_ext in {'zip', 'rar', '7z', 'tar', 'gz'}:
+                file_type = 'archive'
+            elif original_ext in {'mp3', 'wav'}:
+                file_type = 'audio'
+            elif original_ext in {'pdf', 'doc', 'docx', 'txt'}:
+                file_type = 'document'
+            elif original_ext in {'apk', 'exe', 'dmg', 'pkg'}:
+                file_type = 'application'
+            else:
+                file_type = 'file'
+            
+            username = request.form.get('username', '未知用户')
+            
+            socketio.emit('message', {
+                'username': username,
+                'content': filename,
+                'type': file_type,
+                'original_name': file.filename  # 保存原始文件名用于显示
+            })
+            
+            return {'success': True, 'filename': filename}, 200
+            
+        except Exception as e:
+            return {'success': False, 'message': f'文件保存失败: {str(e)}'}, 500
     
     return {'success': False, 'message': '不支持的文件类型'}, 400
 
